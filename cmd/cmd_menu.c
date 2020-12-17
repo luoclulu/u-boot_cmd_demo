@@ -10,23 +10,59 @@
 #include <u-boot/zlib.h>
 
 #define CONFIG_MENU_PROMPT "Menu->"
+#define MAX_MENU_FUNCTIONS 10
 
 extern char console_buffer[CONFIG_SYS_CBSIZE + 1];
 
 typedef struct menu_structure menu_s;
 struct menu_structure{
-	int cflag;
 	char *name;
-	void (* menu_print)(void);
-	void (* menu_function)(void);
+	char *menu_print;
+	int lines;
+	int cflag;
+	void (* func)(void);
+	void (* op)(menu_s *);
+	void (* back)(char *);
+	void *private;
 	menu_s *prev;
-	menu_s *next;
 };
 
-void test_menu_print(void)
+int traverse_menu_function(int lines)
 {
-	printf("###test menu line 1\n");
-	printf("###test menu line 2\n");
+	int i;
+
+	if (lines > MAX_MENU_FUNCTIONS)
+		printf("Error! Menu lines %d greater than Maximum!\n", lines);
+	
+	for (i = 0; i < lines; i++){
+	}
+
+	return 0;
+}
+
+void wait_for_menu_select(void)
+{
+	int len;
+	const char *menu_cmd;
+
+	len = cli_readline(CONFIG_MENU_PROMPT);
+	menu_cmd = console_buffer;
+	printf("-debug- cmd is %s\n", menu_cmd);
+
+	//if (strncmp())
+}
+
+void back_to_premenu(menu_s *cur_menu)
+{
+	if (cur_menu->prev == NULL) {
+		printf("**At the top level**\n");
+		printf("**Press <Ctrl-c> to exit menu**\n");
+	}
+
+	cur_menu = cur_menu->prev;
+	printf("%s", cur_menu->menu_print);
+//	cur_menu->func();
+	wait_for_menu_select();
 }
 
 void test_menu_func(void)
@@ -37,28 +73,35 @@ void test_menu_func(void)
 int menu_s_test(void)
 {
 	menu_s menu_test = {
-		.cflag = 0,
 		.name = "menu_test",
-		.menu_print = test_menu_print,
-		.menu_function = test_menu_func,
+		.menu_print = "\n"
+			"[1]\n"
+			"[2]\n"
+			"[3]\n"
+			"[4]\n",
+		.cflag = 0,
+		.func = test_menu_func,
 		.prev = NULL,
-		.next = NULL,
 	};
 
-	menu_test.menu_print();
-	menu_test.menu_function();
+	menu_test.func();
 
 	return 0;
 }
 
-#define MAX_FUNCTIONS 10
-int traverse_menu_function(void)
+menu_s *alloc_menu_struct(void)
 {
-	int i;
+	menu_s *menu = (menu_s *)malloc(sizeof(menu_s));
 
-	for (i = 0; i < MAX_FUNCTIONS; i++){
-		
-	}
+	if (menu == NULL)
+		printf("Malloc failed!\n");
+
+	return menu;
+}
+
+void free_menu_struct(menu_s *menu)
+{
+	free(menu);
 }
 
 int do_menu_cmd(const char choice)
@@ -86,36 +129,47 @@ int do_menu_cmd(const char choice)
 	return 0;
 }
 
-void main_menu(void)
+int do_menu_operation(menu_s *menu, char* cmd)
 {
-	printf("\n");
-	printf("[1] main menu a\n");
-	printf("[2] main menu b\n");
-	printf("[3] main menu c\n");
-	printf("[4] main menu d\n");
-	printf("[5] menu_s test\n");
-	printf("[Ctrl-c] exit\n");
+	int len;
+	char *menu_cmd;
+
+	printf("%s", menu->menu_print);
+
+	len = cli_readline(CONFIG_MENU_PROMPT);
+	menu_cmd = console_buffer;
+	printf("-debug- cmd is %s\n", menu_cmd);
+	
+
+	if (len < 0)
+		return len;
+
+	return 0;
 }
 
 void menu_loop(void)
 {
-	int len;
-	const char *menu_cmd;
-	char choice;
+	int ret;
+	char *cmd = "1";
 
+	menu_s *menu_main = alloc_menu_struct();
+	menu_main->name = "main";
+	menu_main->menu_print = "\n"
+		"[1] main menu\n"
+		"[2] main menu\n"
+		"[3] main menu\n"
+		"[4] main menu\n";
+	menu_main->lines = 4;
+	menu_main->prev = NULL;
+	
 	for (;;) {
-		main_menu();
+		ret = do_menu_operation(menu_main, cmd);
 
-		len = cli_readline(CONFIG_MENU_PROMPT);
-		menu_cmd = console_buffer;
-		choice = menu_cmd[0];
-		printf("len is %d\n", len);
-
-		if (len < 0)
+		if (ret < 0)
 			return;
-		else
-			do_menu_cmd(choice);
 	}
+
+	free_menu_struct(menu_main);
 }
 
 static int do_menu(struct cmd_tbl *cmdtp, int flag, int argc,
