@@ -91,8 +91,9 @@ int menu_s_test(void)
 
 menu_s *alloc_menu_struct(void)
 {
-	menu_s *menu = (menu_s *)malloc(sizeof(menu_s));
+	menu_s *menu;
 
+	menu = (menu_s *)malloc(sizeof(menu_s));
 	if (menu == NULL)
 		printf("Malloc failed!\n");
 
@@ -129,9 +130,28 @@ int do_menu_cmd(const char choice)
 	return 0;
 }
 
-int do_menu_operation(menu_s *menu, char* cmd)
+int menu_initialize(void)
 {
-	int len;
+	int i;
+	menu_s *menu_second = alloc_menu_struct();
+
+	menu_second->name = "second";
+	menu_second->menu_print = "\n"
+		"[a] sec menu\n"
+		"[b] sec menu\n"
+		"[c] sec menu\n"
+		"[d] sec menu\n";
+	menu_second->lines = 4;
+	menu_second->prev = NULL;
+
+	for (i = 0; i < menu_second->lines; i++) {
+	}
+	return 0;
+}
+
+int do_menu_operation(menu_s *menu)
+{
+	int i,len;
 	char *menu_cmd;
 
 	printf("%s", menu->menu_print);
@@ -144,13 +164,16 @@ int do_menu_operation(menu_s *menu, char* cmd)
 	if (len < 0)
 		return len;
 
-	return 0;
+	for (i = 0; i < menu->lines; i++) {
+	}
+
+	return -1;
 }
 
 void menu_loop(void)
 {
 	int ret;
-	char *cmd = "1";
+	//char *cmd = "xxx"; /* Initial Command Input */
 
 	menu_s *menu_main = alloc_menu_struct();
 	menu_main->name = "main";
@@ -161,9 +184,11 @@ void menu_loop(void)
 		"[4] main menu\n";
 	menu_main->lines = 4;
 	menu_main->prev = NULL;
+
+	menu_initialize();
 	
 	for (;;) {
-		ret = do_menu_operation(menu_main, cmd);
+		ret = do_menu_operation(menu_main);
 
 		if (ret < 0)
 			return;
